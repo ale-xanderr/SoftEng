@@ -1,6 +1,5 @@
-  name: CI/CD Pipeline
+name: Flask CI/CD Pipeline
 
-# Trigger the workflow only when code is pushed to the main branch
 on:
   push:
     branches: [ "main" ]
@@ -9,10 +8,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - name: Pull codebase
+    - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set up Python Environment
+    - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
@@ -22,5 +21,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Run Pytest
-      run: pytest
+    - name: Run tests
+      run: |
+        pytest
