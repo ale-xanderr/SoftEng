@@ -1,57 +1,42 @@
-name: CI Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    - run: pip install -r requirements.txt
+    - run: pytest
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-
-      - name: Run tests
-        run: |
-          python -m pytest
-
-  docker:
-    runs-on: ubuntu-latest
+  docker-build:
     needs: test
-
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Build Docker Image
-        run: |
-          docker build -t my-flask-app .
+    - uses: actions/checkout@v4
+    - name: Build Docker Image
+      run: docker build -t my-flask-app .
 
   deploy:
+    needs: docker-build
     runs-on: ubuntu-latest
-    needs: docker
-
     steps:
-      - name: Deploy via SSH (password)
-        uses: appleboy/ssh-action@v0.1.6
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
-          password: ${{ secrets.PASSWORD }}
-          script: |
-            cd SE2-FinalLT
-            git pull origin main
-            docker build -t my-flask-app .
-            docker stop flask-app || true
-            docker rm flask-app || true
-            docker run -d -p 5000:5000 --name flask-app my-flask-app
+    - name: Deploy to AQUINOVM
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        password: ${{ secrets.SERVER_PASSWORD }}
+        script: |
+          cd /home/azureuser/SoftEng
+          git pull origin main
+          docker build -t my-flask-app .
+          docker stop flask_app || true
+          docker rm flask_app || true
+          docker run -d -p 80:5000 --name flask_app my-flask-app
